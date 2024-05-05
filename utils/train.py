@@ -1,19 +1,11 @@
 """
-scParaLaG_train.py
-
-Author: Fabian Umeh
-Organization: Teesside University
-Project: Masters Dissertation
-Date: 03/01/2024
-
 ----------------------------------------------------------------------------------------------------------------------------------------
 Description:                                                                                                                            |
     This module is used for the custom training of scParaLaG models.                                                                    |
     It is developed as part of the Masters Dissertation project at Teesside University.                                                 |
                                                                                                                                         |
 Copyright:                                                                                                                              |
-    Copyright © 2024 Fabian Umeh. All rights reserved.                                                                                  |
-    This file is part of the Masters Dissertation project.                                                                              |
+    Copyright © 2024. All rights reserved.                                                                                              |
                                                                                                                                         |
 License:                                                                                                                                |
     This script is licensed under the MIT License.                                                                                      |
@@ -32,7 +24,7 @@ Contact:                                                                        
     For any queries or issues related to this script, please contact fchumeh@gmail.com.                                                 |
 ----------------------------------------------------------------------------------------------------------------------------------------
 """
-
+import sys
 import os
 import math
 import warnings
@@ -40,6 +32,7 @@ import pandas as pd
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from model.scParaLaG import scParaLaG
 
 # Ignore all warnings
@@ -48,7 +41,7 @@ warnings.filterwarnings("ignore")
 
 class CustomEarlyStopping:
     """
-    A custom early stopping mechanism for training neural networks.
+    Custom early stopping mechanism for training scParaLaG.
 
     This class provides a way to stop training early if the loss does not improve sufficiently over a given number of epochs.
     It tracks the best loss and the number of epochs since there was a significant improvement.

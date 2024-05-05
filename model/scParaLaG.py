@@ -1,19 +1,11 @@
 """
-scParaLaG.py
-
-Author: Fabian Umeh
-Organization: Teesside University
-Project: Masters Dissertation
-Date: 03/01/2024
-
 ----------------------------------------------------------------------------------------------------------------------------------------
 Description:                                                                                                                            |
     This module contains the scParaLaG framework for building scParaLaG models.                                                         |
     It is developed as part of the Masters Dissertation project at Teesside University.                                                 |
                                                                                                                                         |
 Copyright:                                                                                                                              |
-    Copyright © 2024 Fabian Umeh. All rights reserved.                                                                                  |
-    This file is part of the Masters Dissertation project.                                                                              |
+    Copyright © 2024. All rights reserved.                                                                                              |                                                                             |
                                                                                                                                         |
 License:                                                                                                                                |
     This script is licensed under the MIT License.                                                                                      |
@@ -125,7 +117,7 @@ class scParaLaG(nn.Module):
     """
     A model for graph neural network with parameterized layer aggregation.
 
-    This model includes multiple convolutional, residual, and linear layers with an attention mechanism for aggregating
+    This model includes convolutional, residual, and linear layers with an attention mechanism for aggregating
     the outputs of these layers.
 
     Attributes

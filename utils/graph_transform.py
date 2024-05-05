@@ -1,19 +1,11 @@
 """
-scParaLaG_graph_transform.py
-
-Author: Fabian Umeh
-Organization: Teesside University
-Project: Masters Dissertation
-Date: 03/01/2024
-
 ----------------------------------------------------------------------------------------------------------------------------------------
 Description:                                                                                                                            |
     This module is used for creating graphs suitable for scParaLaG models.                                                              |
     It is developed as part of the Masters Dissertation project at Teesside University.                                                 |
                                                                                                                                         |
 Copyright:                                                                                                                              |
-    Copyright © 2024 Fabian Umeh. All rights reserved.                                                                                  |
-    This file is part of the Masters Dissertation project.                                                                              |
+    Copyright © 2024. All rights reserved.                                                                                              |                                                                            |
                                                                                                                                         |
 License:                                                                                                                                |
     This script is licensed under the MIT License.                                                                                      |

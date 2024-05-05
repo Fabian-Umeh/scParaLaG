@@ -1,19 +1,11 @@
 """
-scParaLaG_cl.py
-
-Author: Fabian Umeh
-Organization: Teesside University
-Project: Masters Dissertation
-Date: 03/01/2024
-
 ----------------------------------------------------------------------------------------------------------------------------------------
 Description:                                                                                                                            |
     This module is used for building, customizing, and training of models made with the scParaLaG Framework.                            |
     It is developed as part of the Masters Dissertation project at Teesside University.                                                 |
                                                                                                                                         |
 Copyright:                                                                                                                              |
-    Copyright © 2024 Fabian Umeh. All rights reserved.                                                                                  |
-    This file is part of the Masters Dissertation project.                                                                              |
+    Copyright © 2024. All rights reserved.                                                                                              |
                                                                                                                                         |
 License:                                                                                                                                |
     This script is licensed under the MIT License.                                                                                      |
@@ -86,7 +78,7 @@ parser.add_argument("-convf", "--conv_flow", nargs='*',
 parser.add_argument("-aggf", "--agg_flow", nargs='*', choices=[None, 'mean'],
                     default=[None],
                     help="List of aggregation flow 'mean' or 'None'")
-parser.add_argument("-device", "--device", default="cuda")
+parser.add_argument("-device", "--device", default="cpu", choices=["cpu", "cuda"])
 parser.add_argument("-lr", "--learning_rate", type=float, default=0.00004)
 parser.add_argument("-hid", "--hidden_size", type=int, default=512)
 parser.add_argument("-nh", "--num_heads", type=int, default=2)
