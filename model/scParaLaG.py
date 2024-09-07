@@ -2,7 +2,6 @@
 ----------------------------------------------------------------------------------------------------------------------------------------
 Description:                                                                                                                            |
     This module contains the scParaLaG framework for building scParaLaG models.                                                         |
-    It is developed as part of the Masters Dissertation project at Teesside University.                                                 |
                                                                                                                                         |
 Copyright:                                                                                                                              |
     Copyright © 2024. All rights reserved.                                                                                              |                                                                             |
