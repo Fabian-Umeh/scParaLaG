@@ -31,54 +31,84 @@ from sklearn.neighbors import kneighbors_graph
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import TruncatedSVD
 from dance.data.base import Data
+import numpy as np
 
 class GraphCreator:
     def __init__(self, preprocess_type, n_neighbors=20, n_components=1200,
-                 metric='euclidean'):
+             metric='euclidean', weight_type='gaussian', sigma=1.0):
         """
-        Initialize the GraphCreator class for constructing k-nearest neighbor graphs.
+        Initialize the GraphCreator with weighted edge computation.
 
         Parameters
         ----------
         preprocess_type : str
-            Specifies the type of preprocessing to perform on the data. Options are 'None' and 'SVD'.
+            Type of preprocessing to apply. Options: 'None', 'SVD'
         n_neighbors : int, optional
-            The number of nearest neighbors to consider for graph construction.
+            Number of nearest neighbors for graph construction. Default is 20.
         n_components : int, optional
-            Number of components to retain if SVD is used for preprocessing.
+            Number of components if SVD preprocessing is used. Default is 1200.
         metric : str, optional
-            The distance metric to use for kneighbors graph construction. Defaults to 'euclidean'.
-
-        Raises
-        ------
-        ValueError
-            If the preprocess_type is not among the allowed options.
+            Distance metric for KNN computation. Default is 'euclidean'.
+        weight_type : str, optional
+            Type of edge weight computation. Options: 'gaussian', 'cosine'. Default is 'gaussian'.
+        sigma : float, optional
+            Bandwidth parameter for Gaussian kernel. Default is 1.0.
         """
-        if preprocess_type not in ['None', 'SVD']:
-            raise ValueError("preprocess_type must be 'None' or 'SVD'")
         self.preprocess_type = preprocess_type
         self.n_neighbors = n_neighbors
         self.n_components = n_components
         self.metric = metric
+        self.weight_type = weight_type
+        self.sigma = sigma
+
+    def _compute_edge_weights(self, distances):
+        """
+        Transform distances to edge weights using specified weighting scheme.
+
+        Parameters
+        ----------
+        distances : np.ndarray
+            Array of pairwise distances between nodes.
+
+        Returns
+        -------
+        np.ndarray
+            Transformed edge weights. For Gaussian kernel: exp(-d²/2σ²),
+            For cosine: 1-d, For others: raw distances.
+        """
+        if self.weight_type == 'gaussian':
+            return np.exp(-distances**2 / (2 * self.sigma**2))
+        elif self.weight_type == 'cosine':
+            return 1 - distances
+        return distances
 
     def _build_knn_graph(self, features):
         """
-        Build a k-nearest neighbor graph using the provided features.
+        Construct a weighted k-nearest neighbors graph from feature vectors.
 
         Parameters
         ----------
         features : array-like
-            The feature set based on which the k-nearest neighbor graph is to be constructed.
+            Input feature matrix of shape (n_samples, n_features).
 
         Returns
         -------
-        graph : dgl.DGLGraph
-            The constructed graph where nodes represent samples and edges represent neighbor relationships.
+        dgl.DGLGraph
+            A DGL graph with:
+            - Nodes representing samples
+            - Edges connecting k-nearest neighbors
+            - Edge weights computed using specified weighting scheme
+            - Edge weights stored in graph.edata['weight']
         """
         A = kneighbors_graph(features, n_neighbors=self.n_neighbors,
-                             metric=self.metric, mode='connectivity',
-                             include_self=True)
+                        metric=self.metric, mode='distance',
+                        include_self=True)
+        # Convert distances to weights
+        weights = self._compute_edge_weights(A.data)
+        A.data = weights
+
         graph = dgl.from_scipy(A)
+        graph.edata['weight'] = torch.tensor(weights, dtype=torch.float32)
         return graph
 
     def _create_graphs(self, train_features, val_features, test_features):
