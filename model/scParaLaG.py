@@ -66,14 +66,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import dgl.nn as dglnn
 from dgl.nn.pytorch.conv import GATConv, GraphConv, SAGEConv
+from sklearn.cluster import KMeans
 
-seed = 1
-random.seed(seed)
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+# seed = 1
+# random.seed(seed)
+# np.random.seed(seed)
+# torch.manual_seed(seed)
+# torch.cuda.manual_seed(seed)
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 
 class LayerAttention(nn.Module):
     """
@@ -116,7 +117,7 @@ class scParaLaG(nn.Module):
     """
     A model for graph neural network with parameterized layer aggregation.
 
-    This model includes convolutional, residual, and linear layers with an attention mechanism for aggregating
+    This model includes multiple convolutional, residual, and linear layers with an attention mechanism for aggregating
     the outputs of these layers.
 
     Attributes
@@ -296,4 +297,93 @@ class scParaLaG(nn.Module):
             'rrelu': F.rrelu
       }
       return activation_functions.get(name)
+
+
+
+class scParaLaG_Hierarchical(nn.Module):
+    def __init__(self, args, num_clusters=10):
+        super(scParaLaG_Hierarchical, self).__init__()
+        self.args = args
+        self.num_clusters = num_clusters
+        num_heads = self.args.num_heads
+        self.activation = scParaLaG_Hierarchical.get_activation_function(self.args.act)
+        self.conv_layers = nn.ModuleList()
+        self.linear_layers = nn.ModuleList()
+        self.residual_layers = nn.ModuleList()
+        self.layer_attention = LayerAttention(len(self.args.conv_flow) + self.args.layer_dim_ex, self.args.hidden_size)
+        self.final_linear = nn.Linear(self.args.hidden_size, self.args.OUTPUT_SIZE)
+        self.dropout = nn.Dropout(self.args.dropout_rate)
+        # Hierarchical pooling doubles the feature dimension.
+        in_feats = self.args.FEATURE_SIZE * 2
+        out_feats = self.args.hidden_size
+        for i, (layer_type, agg_type) in enumerate(zip(self.args.conv_flow, self.args.agg_flow)):
+            conv_layer = scParaLaG_Hierarchical.layer_factory(layer_type, in_feats, out_feats, agg_type, num_heads)
+            self.conv_layers.append(conv_layer)
+            out_in_dim = out_feats * num_heads if (layer_type == 'gat' and agg_type is None) else out_feats
+            linear_layer = nn.Linear(in_feats, out_in_dim)
+            self.linear_layers.append(linear_layer)
+            residual_layer = nn.Linear(out_in_dim, self.args.hidden_size)
+            self.residual_layers.append(residual_layer)
+            in_feats = self.args.hidden_size
+
+    def hierarchical_pool(self, features):
+        # features: [N, FEATURE_SIZE]
+        N, feat_dim = features.shape
+        features_np = features.detach().cpu().numpy()
+        kmeans = KMeans(n_clusters=self.num_clusters, random_state=0).fit(features_np)
+        labels = kmeans.labels_
+        centroids = torch.tensor(kmeans.cluster_centers_, dtype=features.dtype, device=features.device)
+        centroid_feats = centroids[torch.tensor(labels, device=features.device)]
+        new_features = torch.cat([features, centroid_feats], dim=1)
+        return new_features
+
+    def forward(self, g, features):
+        x = self.hierarchical_pool(features)  # now [N, FEATURE_SIZE*2]
+        layer_outputs = []
+        for i, (conv, linear, residual) in enumerate(zip(self.conv_layers, self.linear_layers, self.residual_layers)):
+            conv_h = conv(g, x)
+            if self.args.conv_flow[i] == 'gat':
+                if self.args.agg_flow[i] == 'mean':
+                    conv_h = conv_h.mean(1)
+                elif self.args.agg_flow[i] is None:
+                    conv_h = conv_h.flatten(1)
+            linear_h = linear(x)
+            combined = conv_h + linear_h
+            res = residual(combined)
+            res = self.activation(res)
+            res = self.dropout(res)
+            layer_outputs.append(res)
+            x = res
+        h = self.layer_attention(layer_outputs)
+        h = self.final_linear(h)
+        return h
+
+    @staticmethod
+    def layer_factory(layer_type, in_feats, out_feats, agg_type=None, num_heads=None):
+        if layer_type == 'gat':
+            return GATConv(in_feats=in_feats, out_feats=out_feats,
+                           num_heads=num_heads, activation=F.leaky_relu)
+        elif layer_type == 'gconv':
+            return GraphConv(in_feats=in_feats, out_feats=out_feats)
+        elif layer_type == 'sage':
+            return SAGEConv(in_feats=in_feats, out_feats=out_feats,
+                            aggregator_type=agg_type)
+        else:
+            raise ValueError(f"Unknown layer type: {layer_type}")
+
+    @staticmethod
+    def get_activation_function(name):
+        funcs = {
+            'relu': F.relu,
+            'relu6': F.relu6,
+            'sigmoid': torch.sigmoid,
+            'tanh': torch.tanh,
+            'leaky_relu': F.leaky_relu,
+            'selu': F.selu,
+            'gelu': F.gelu,
+            'rrelu': F.rrelu
+        }
+        return funcs.get(name)
+
+
     
